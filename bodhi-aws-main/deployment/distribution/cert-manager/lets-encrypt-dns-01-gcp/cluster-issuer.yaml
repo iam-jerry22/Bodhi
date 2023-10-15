@@ -1,0 +1,23 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: gateways-issuer
+  namespace: istio-system
+spec:
+  # selfSigned: # TODO : Check Self-Signed Patch Delete
+  #   $patch: delete
+  acme:
+    email: vankala.krishnakumar@publicissapient.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: gateways-issuer-account-key
+    solvers:
+      # TODO : Separate GCP and AWS DNS Resolver
+      - dns01:
+          cloudDNS:
+            # The ID of the GCP project
+            project: xxx
+            # This is the secret used to access the service account
+            serviceAccountSecretRef:
+              name: argoflow-dns-resolver-secret
+              key: credentials.json

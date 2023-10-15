@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/instance: certificates
+  name: superset-ingressgateway-certs
+  namespace: istio-system
+spec:
+  secretName: superset-ingressgateway-certs
+  issuerRef:
+    name: gateways-issuer
+    kind: ClusterIssuer
+  commonName: superset.bodhimlops.xyz
+  dnsNames:
+    - superset.bodhimlops.xyz
+    - add.bodhimlops.xyz

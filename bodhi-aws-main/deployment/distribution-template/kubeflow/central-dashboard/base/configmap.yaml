@@ -1,0 +1,124 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: centraldashboard-config
+  namespace: kubeflow
+data:
+  links: |-
+    {
+      "menuLinks": [
+        {
+          "type": "item",
+          "link": "/jupyter/",
+          "text": "Notebooks",
+          "icon": "book"
+        },
+        {
+          "type": "item",
+          "link": "/tensorboards/",
+          "text": "Tensorboards",
+          "icon": "assessment"
+        },
+        {
+          "type": "item",
+          "link": "/volumes/",
+          "text": "Volumes",
+          "icon": "device:storage"
+        },
+        {
+          "type": "item",
+          "link": "/kserve-endpoints/",
+          "text": "Models",
+          "icon": "kubeflow:models"
+        },
+        {
+          "type": "item",
+          "link": "/katib/",
+          "text": "Experiments (AutoML)",
+          "icon": "kubeflow:katib"
+        },
+        {
+          "type": "item",
+          "text": "Experiments (KFP)",
+          "link": "/pipeline/#/experiments",
+          "icon": "done-all"
+        },
+        {
+          "type": "item",
+          "link": "/pipeline/#/pipelines",
+          "text": "Pipelines",
+          "icon": "kubeflow:pipeline-centered"
+        },
+        {
+          "type": "item",
+          "link": "/pipeline/#/runs",
+          "text": "Runs",
+          "icon": "maps:directions-run"
+        },
+        {
+          "type": "item",
+          "link": "/pipeline/#/recurringruns",
+          "text": "Recurring Runs",
+          "icon": "device:access-alarm"
+        },
+        {
+          "type": "item",
+          "link": "/pipeline/#/artifacts",
+          "text": "Artifacts",
+          "icon": "editor:bubble-chart"
+        },
+        {
+          "type": "item",
+          "link": "/pipeline/#/executions",
+          "text": "Executions",
+          "icon": "av:play-arrow"
+        },
+        {
+          "type": "item",
+          "link": "/ray/",
+          "text": "Ray Dashboard",
+          "icon": "maps:layers"
+        },
+        {
+          "type": "item",
+          "link": "/mlflow/",
+          "text": "MLFlow",
+          "icon": "maps:layers"
+        }
+      ],
+      "externalLinks": [ ],
+        "quickLinks": [
+          {
+            "text": "Upload a pipeline",
+            "desc": "Pipelines",
+            "link": "/pipeline/"
+          },
+          {
+            "text": "View all pipeline runs",
+            "desc": "Pipelines",
+            "link": "/pipeline/#/runs"
+          },
+          {
+            "text": "Create a new Notebook server",
+            "desc": "Notebook Servers",
+            "link": "/jupyter/new?namespace=kubeflow"
+          },
+          {
+            "text": "View Katib Experiments",
+            "desc": "Katib",
+            "link": "/katib/"
+          }
+        ],
+        "documentationItems": [
+          {
+            "text": "Getting Started with Bodhi",
+            "desc": "Get your machine-learning workflow up and running on Bodhi",
+            "link": "https://aipsmlops.xyz/"
+          }
+         
+        ]
+    }
+  settings: |-
+    {
+      "DASHBOARD_FORCE_IFRAME": true
+    }

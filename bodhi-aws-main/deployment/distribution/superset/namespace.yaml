@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  # labels:
+  #   control-plane: superset
+  #   istio-injection: enabled
+  name: superset
+  annotations:
+    # annotation key is configurable
+    iam.amazonaws.com/permitted: "arn:aws:iam::412674115502:role/.*"

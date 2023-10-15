@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    owner: %EMAIL_ID
+  labels:
+    app.kubernetes.io/part-of: kubeflow-profile
+    istio-injection: enabled
+    katib-metricscollector-injection: enabled
+    pipelines.kubeflow.org/enabled: "true"
+    serving.kubeflow.org/inferenceservice: enabled
+  name: %FIRSTNAME_LASTNAME
+
+---
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  finalizers:
+    - profile-finalizer
+  name: %FIRSTNAME_LASTNAME
+spec:
+  owner:
+    kind: User
+    name: %EMAIL_ID
+  resourceQuotaSpec: {}
+
+
+---
+# user storage
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: %FIRSTNAME_LASTNAME
+  namespace: %FIRSTNAME_LASTNAME
+spec:
+  storageClassName: managed-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: bind-ml-pipeline-nb-%FIRSTNAME_LASTNAME # set the name using namespace
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/%FIRSTNAME_LASTNAME/sa/default-editor"] # set the namespace
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: add-header-notebook
+  namespace: %FIRSTNAME_LASTNAME # set the namespace
+spec:
+  configPatches:
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: SIDECAR_OUTBOUND
+        routeConfiguration:
+          vhost:
+            name: ml-pipeline.kubeflow.svc.cluster.local:8888
+            route:
+              name: default
+      patch:
+        operation: MERGE
+        value:
+          request_headers_to_add:
+            - append: true
+              header:
+                key: kubeflow-userid
+                value: %EMAIL_ID # set email ID
+  workloadSelector:
+    labels:
+      notebook-name: notebook # change the notebook name
+
+---
+apiVersion: "kubeflow.org/v1alpha1"
+kind: PodDefault
+metadata:
+  name: add-pipeline-role
+  namespace: %FIRSTNAME_LASTNAME
+spec:
+  selector:
+    matchLabels:
+      add-pipeline-role: "true"
+    desc: "Assume Pipeline Access Role"
+    annotations:
+      eks.amazonaws.com/role-arn: <<__role_arn.pipelines__>>
+
+---
+apiVersion: kubernetes-client.io/v1
+kind: ExternalSecret
+metadata:
+  name: pipelines-s3-secret
+  namespace: %FIRSTNAME_LASTNAME
+spec:
+  backendType: <<__external_secrets.backend_type__>>
+  roleArn: <<__role_arn.external_secrets.kubeflow__>>
+  region: <<__aws_region__>>
+  data:
+    - key: <<__external_secret_name.kubeflow.s3_accesskey__>>
+      name: S3_ACCESSKEY
+      property: S3_ACCESSKEY
+    - key: <<__external_secret_name.kubeflow.s3_secretkey__>>
+      name: S3_SECRETKEY
+      property: S3_SECRETKEY
+
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: default-editor
+  namespace: %FIRSTNAME_LASTNAME
+  annotations:
+    eks.amazonaws.com/role-arn: <<__role_arn.pipelines__>>

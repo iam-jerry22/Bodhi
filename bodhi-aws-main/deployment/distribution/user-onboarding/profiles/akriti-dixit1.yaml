@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    owner: akriti.dixit@publicissapient.com
+  labels:
+    app.kubernetes.io/part-of: kubeflow-profile
+    istio-injection: enabled
+    katib-metricscollector-injection: enabled
+    pipelines.kubeflow.org/enabled: "true"
+    serving.kserve.io/inferenceservice: enabled
+  name: akriti-dixit
+---
+apiVersion: kubeflow.org/v1beta1
+kind: Profile
+metadata:
+  name: akriti-dixit
+spec:
+  owner:
+    kind: User
+    name: akriti.dixit@publicissapient.com
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: bind-ml-pipeline-nb-akriti-dixit # set the name using namespace
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/akriti-dixit/sa/default-editor"] # set the namespace
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: add-header
+  namespace: akriti-dixit
+spec:
+  configPatches:
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: SIDECAR_OUTBOUND
+        routeConfiguration:
+          vhost:
+            name: ml-pipeline.kubeflow.svc.cluster.local:8888
+            route:
+              name: default
+      patch:
+        operation: MERGE
+        value:
+          request_headers_to_add:
+            - append: true
+              header:
+                key: kubeflow-userid
+                value: akriti.dixit@publicissapient.com
+  workloadSelector:
+    labels:
+      add-pipeline-role: "true"
+
+---
+apiVersion: "kubeflow.org/v1alpha1"
+kind: PodDefault
+metadata:
+  name: add-pipeline-role
+  namespace: akriti-dixit
+spec:
+  desc: "Assume Pipeline Access Role"
+  selector:
+    matchLabels:
+      add-pipeline-role: "true"
+  volumes:
+    - name: volume-kf-pipeline-token
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: token
+              expirationSeconds: 7200
+              audience: pipelines.kubeflow.org
+  volumeMounts:
+    - mountPath: /var/run/secrets/kubeflow/pipelines
+      name: volume-kf-pipeline-token
+      readOnly: true
+  env:
+    - name: KF_PIPELINES_SA_TOKEN_PATH
+      value: /var/run/secrets/kubeflow/pipelines/token
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: auth-policy-notebooks
+  namespace: akriti-dixit
+spec:
+  action: ALLOW
+  # Note: the notebook pods do not have a general label to identify them as such, therefore we don't have a selector here.
+  # Fortunately the endpoint is specific enough so that this should not cause any security issue.
+  rules:
+    - to:
+        - operation:
+            methods: ["GET"]
+            paths: ["*/api/status"] # wildcard for the name of the notebook server
+
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: mlpipeline-minio-artifact
+  namespace: akriti-dixit
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secret-store
+
+  target:
+    name: mlpipeline-minio-artifact
+    creationPolicy: Owner
+
+  data:
+    # name of the SECRET in the Azure KV (no prefix is by default a SECRET)
+    - secretKey: accesskey
+      remoteRef:
+        key: bodhi-ask-test/bodhi-sc-88/prod
+
+    # explicit type and name of secret in the Azure KV
+    - secretKey: secretkey
+      remoteRef:
+        key: bodhi-ask-test/bodhi-sc-88/prod
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: akriti-dixit
+  namespace: akriti-dixit
+spec:
+  storageClassName: managed-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi

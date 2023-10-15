@@ -1,0 +1,30 @@
+# Allow all traffic to the cluster-local-gateway
+# apiVersion: security.istio.io/v1beta1
+# kind: AuthorizationPolicy
+# metadata:
+#   name: cluster-local-gateway
+# spec:
+#   action: ALLOW
+#   selector:
+#     # Same as the cluster-local-gateway Service selector
+#     matchLabels:
+#       app: cluster-local-gateway
+#       istio: cluster-local-gateway
+#   rules:
+#   - {}
+
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: istio-resources
+  name: cluster-local-gateway
+  namespace: istio-system
+spec:
+  action: ALLOW
+  rules:
+    - {}
+  selector:
+    matchLabels:
+      app: cluster-local-gateway
+      istio: cluster-local-gateway

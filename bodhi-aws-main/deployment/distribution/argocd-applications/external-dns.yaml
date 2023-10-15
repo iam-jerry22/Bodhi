@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: kube-system
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    chart: external-dns
+    helm:
+      parameters:
+        - name: aws.region
+          value: us-east-2
+        - name: domainFilters[0]
+          value: bodhimlops.xyz
+        - name: serviceAccount.create
+          value: "true"
+        - name: rbac.create
+          value: "true"
+        - name: resources.limits.cpu
+          value: 100m
+        - name: resources.limits.memory
+          value: 300Mi
+        - name: resources.requests.cpu
+          value: 100m
+        - name: resources.requests.memory
+          value: 300Mi
+        - name: sources[0]
+          value: service
+        - name: sources[1]
+          value: ingress
+        - name: sources[2]
+          value: istio-gateway
+        - name: sources[3]
+          value: istio-virtualservice
+        # - name: aws.assumeRolenArn
+        #   value: arn:aws:iam::412674115502:role/bodhi-ask-test-route53-external-dns
+        - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
+          value: arn:aws:iam::412674115502:role/bodhi-ask-test-route53-external-dns
+    repoURL: https://charts.bitnami.com/bitnami
+    targetRevision: 6.8.2
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

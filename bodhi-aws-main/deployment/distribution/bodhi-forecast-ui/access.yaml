@@ -1,0 +1,41 @@
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: bind-ml-pipeline-forecastui # set the name using namespace
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/forecast/sa/default"]
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: add-header-bodhiforecastui
+  namespace: forecast # set the namespace
+spec:
+  configPatches:
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: SIDECAR_OUTBOUND
+        routeConfiguration:
+          vhost:
+            name: ml-pipeline.kubeflow.svc.cluster.local:8888
+            route:
+              name: default
+      patch:
+        operation: MERGE
+        value:
+          request_headers_to_add:
+            - append: true
+              header:
+                key: kubeflow-userid
+                value: vankala.krishnakumar@publicissapient.com
+  workloadSelector:
+    labels:
+       app: bodhi-forecast-ui

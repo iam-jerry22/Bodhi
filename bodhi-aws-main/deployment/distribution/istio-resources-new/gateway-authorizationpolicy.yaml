@@ -1,0 +1,21 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-system
+spec:
+  action: CUSTOM
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+      istio: ingressgateway
+  provider:
+    name: oauth2-proxy
+  rules:
+  - to:
+    - operation:
+        hosts:
+        - console.bodhimlops.xyz
+        - kubecost.bodhimlops.xyz
+        - serving.bodhimlops.xyz
+        - "*.serving.bodhimlops.xyz"

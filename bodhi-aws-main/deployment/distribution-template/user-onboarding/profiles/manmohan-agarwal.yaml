@@ -1,0 +1,168 @@
+# user namespace
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: manmohan-agarwal
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    owner: manmohan.agarwal@publicissapient.com
+  labels:
+    app.kubernetes.io/part-of: kubeflow-profile
+    istio-injection: enabled
+    katib-metricscollector-injection: enabled
+    pipelines.kubeflow.org/enabled: "true"
+    serving.kubeflow.org/inferenceservice: enabled
+  name: manmohan-agarwal
+
+---
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  finalizers:
+    - profile-finalizer
+  name: manmohan-agarwal
+spec:
+  owner:
+    kind: User
+    name: manmohan.agarwal@publicissapient.com
+  resourceQuotaSpec: {}
+
+# user profile
+# apiVersion: kubeflow.org/v1
+# kind: Profile
+# metadata:
+#   name: manmohan-agarwal
+#   #namespace: manmohan-agarwal
+# spec:
+#   owner:
+#     kind: User
+#     name: manmohan.agarwal@publicissapient.com
+# resourceQuotaSpec:    # resource quota can be set optionally
+#   hard:
+#     cpu: "50"
+#     memory: 100Gi
+#     requests.nvidia.com/gpu: "2"
+#     persistentvolumeclaims: "20"
+#     requests.storage: "100Gi"
+
+---
+# user storage
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: manmohan-agarwal
+  namespace: manmohan-agarwal
+spec:
+  storageClassName: managed-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+# ---
+# apiVersion: security.istio.io/v1beta1
+# kind: AuthorizationPolicy
+# metadata:
+#   annotations:
+#     role: edit
+#     user: manmohan.agarwal@publicissapient.com
+#   generation: 1
+#   name: user-manmohan-agarwal-publicissapient-com-clusterrole-edit
+#   namespace: manmohan-agarwal
+# spec:
+#   rules:
+#     - when:
+#         - key: request.headers[kubeflow-userid]
+#           values:
+#             - manmohan.agarwal@publicissapient.com
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: bind-ml-pipeline-nb-manmohan-agarwal # set the name using namespace
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/manmohan-agarwal/sa/default-editor"] # set the namespace
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: add-header-notebook
+  namespace: manmohan-agarwal # set the namespace
+spec:
+  configPatches:
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: SIDECAR_OUTBOUND
+        routeConfiguration:
+          vhost:
+            name: ml-pipeline.kubeflow.svc.cluster.local:8888
+            route:
+              name: default
+      patch:
+        operation: MERGE
+        value:
+          request_headers_to_add:
+            - append: true
+              header:
+                key: kubeflow-userid
+                value: manmohan.agarwal@publicissapient.com # set email ID
+  workloadSelector:
+    labels:
+      notebook-name: notebook # change the notebook name
+
+---
+apiVersion: "kubeflow.org/v1alpha1"
+kind: PodDefault
+metadata:
+  name: add-pipeline-role
+  namespace: manmohan-agarwal
+spec:
+  selector:
+    matchLabels:
+      add-pipeline-role: "true"
+    desc: "Assume Pipeline Access Role"
+    annotations:
+      eks.amazonaws.com/role-arn: <<__role_arn.pipelines__>>
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: pipelines-s3-secret
+  namespace: manmohan-agarwal
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secret-store
+
+  target:
+    name: pipelines-s3-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: S3_ACCESSKEY
+    remoteRef:
+      key:  <<__external_secret_name.kubeflow.s3_accesskey__>>
+      property: S3_ACCESSKEY
+  - secretKey: S3_SECRETKEY
+    remoteRef:
+      key:  <<__external_secret_name.kubeflow.s3_secretkey__>>
+      property: S3_SECRETKEY
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: default-editor
+  namespace: manmohan-agarwal
+  annotations:
+    eks.amazonaws.com/role-arn: <<__role_arn.pipelines__>>

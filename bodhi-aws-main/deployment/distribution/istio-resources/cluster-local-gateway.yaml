@@ -1,0 +1,38 @@
+# apiVersion: networking.istio.io/v1alpha3
+# kind: Gateway
+# metadata:
+#   name: cluster-local-gateway
+#   labels:
+#     release: istio
+# spec:
+#   selector:
+#     app: cluster-local-gateway
+#     istio: cluster-local-gateway
+#   servers:
+#   - port:
+#       number: 80
+#       name: http
+#       protocol: HTTP
+#     hosts:
+#     - '*'
+
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  labels:
+    app.kubernetes.io/instance: istio-resources
+    release: istio
+  name: cluster-local-gateway
+  namespace: istio-system
+spec:
+  selector:
+    app: cluster-local-gateway
+    istio: cluster-local-gateway
+  servers:
+    - hosts:
+        - '*'
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+

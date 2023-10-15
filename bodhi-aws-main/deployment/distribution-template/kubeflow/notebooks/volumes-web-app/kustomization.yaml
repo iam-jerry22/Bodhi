@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+    - github.com/kubeflow/kubeflow/components/crud-web-apps/volumes/manifests/overlays/istio?ref=<<__kubeflow_version__>>
+
+images:
+    - name: docker.io/kubeflownotebookswg/volumes-web-app
+      newName: docker.io/kubeflownotebookswg/volumes-web-app
+      newTag: 296dead

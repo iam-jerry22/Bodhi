@@ -1,0 +1,16 @@
+terraform.tfvars
+.terraform*
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/*
+terraform.tfvars
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.lock.info
+terraform.tfstate.backup
+terraform.tfvars
+output.conf
+terraformtest.tfvars
+
+output_converted.conf
+

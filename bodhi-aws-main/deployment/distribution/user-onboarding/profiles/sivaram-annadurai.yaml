@@ -1,0 +1,100 @@
+# user namespace
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: sivaram-annadurai
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    owner: sivaram.annadurai@publicissapient.com
+  labels:
+    app.kubernetes.io/part-of: kubeflow-profile
+    istio-injection: enabled
+    katib-metricscollector-injection: enabled
+    pipelines.kubeflow.org/enabled: "true"
+    serving.kubeflow.org/inferenceservice: enabled
+  name: sivaram-annadurai
+
+---
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  finalizers:
+    - profile-finalizer
+  name: sivaram-annadurai
+spec:
+  owner:
+    kind: User
+    name: sivaram.annadurai@publicissapient.com
+  resourceQuotaSpec: {}
+
+# user profile
+# apiVersion: kubeflow.org/v1
+# kind: Profile
+# metadata:
+#   name: sivaram-annadurai
+#   #namespace: sivaram-annadurai
+# spec:
+#   owner:
+#     kind: User
+#     name: sivaram.annadurai@publicissapient.com
+# resourceQuotaSpec:    # resource quota can be set optionally
+#   hard:
+#     cpu: "50"
+#     memory: 100Gi
+#     requests.nvidia.com/gpu: "2"
+#     persistentvolumeclaims: "20"
+#     requests.storage: "100Gi"
+
+---
+# user storage
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: sivaram-annadurai
+  namespace: sivaram-annadurai
+spec:
+  storageClassName: managed-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+
+
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: pipelines-s3-secret
+  namespace: sivaram-annadurai
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secret-store
+
+  target:
+    name: pipelines-s3-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: S3_ACCESSKEY
+    remoteRef:
+      key:  bodhi-ask-test/bodhi-sc-88/prod
+      property: S3_ACCESSKEY
+  - secretKey: S3_SECRETKEY
+    remoteRef:
+      key:  bodhi-ask-test/bodhi-sc-88/prod
+      property: S3_SECRETKEY
+
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: default-editor
+  namespace: sivaram-annadurai
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::412674115502:role/bodhi-ask-test-pipeline-access

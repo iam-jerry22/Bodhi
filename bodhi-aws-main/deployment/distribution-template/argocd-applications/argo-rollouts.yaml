@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-rollouts
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    path: deployment/distribution/argo-rollouts/base
+    #repoURL: <<__git_repo.url__>>
+    repoURL: <<__git_repo.url__>>
+    targetRevision: <<__git_repo.target_revision__>>
+    
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true

@@ -1,0 +1,174 @@
+# user namespace
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: luis-enrique
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    owner: extlalva@belcorp.biz
+  labels:
+    app.kubernetes.io/part-of: kubeflow-profile
+    istio-injection: enabled
+    katib-metricscollector-injection: enabled
+    pipelines.kubeflow.org/enabled: "true"
+    serving.kubeflow.org/inferenceservice: enabled
+  name: luis-enrique
+
+---
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  finalizers:
+    - profile-finalizer
+  name: luis-enrique
+spec:
+  owner:
+    kind: User
+    name: extlalva@belcorp.biz
+  resourceQuotaSpec: {}
+
+# user profile
+# apiVersion: kubeflow.org/v1
+# kind: Profile
+# metadata:
+#   name: luis-enrique
+#   #namespace: luis-enrique
+# spec:
+#   owner:
+#     kind: User
+#     name: extlalva@belcorp.biz
+# resourceQuotaSpec:    # resource quota can be set optionally
+#   hard:
+#     cpu: "50"
+#     memory: 100Gi
+#     requests.nvidia.com/gpu: "2"
+#     persistentvolumeclaims: "20"
+#     requests.storage: "100Gi"
+
+---
+# user storage
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: luis-enrique
+  namespace: luis-enrique
+spec:
+  storageClassName: managed-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+# ---
+# apiVersion: security.istio.io/v1beta1
+# kind: AuthorizationPolicy
+# metadata:
+#   annotations:
+#     role: edit
+#     user: extlalva@belcorp.biz
+#   generation: 1
+#   name: user-luis-enrique-publicissapient-com-clusterrole-edit
+#   namespace: luis-enrique
+# spec:
+#   rules:
+#     - when:
+#         - key: request.headers[kubeflow-userid]
+#           values:
+#             - extlalva@belcorp.biz
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: bind-ml-pipeline-nb-luis-enrique # set the name using namespace
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/luis-enrique/sa/default-editor"] # set the namespace
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: add-header-notebook
+  namespace: luis-enrique # set the namespace
+spec:
+  configPatches:
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: SIDECAR_OUTBOUND
+        routeConfiguration:
+          vhost:
+            name: ml-pipeline.kubeflow.svc.cluster.local:8888
+            route:
+              name: default
+      patch:
+        operation: MERGE
+        value:
+          request_headers_to_add:
+            - append: true
+              header:
+                key: kubeflow-userid
+                value: extlalva@belcorp.biz # set email ID
+  workloadSelector:
+    labels:
+      notebook-name: mynotebook # change the notebook name
+
+---
+apiVersion: "kubeflow.org/v1alpha1"
+kind: PodDefault
+metadata:
+  name: add-pipeline-role
+  namespace: luis-enrique
+spec:
+  selector:
+    matchLabels:
+      add-pipeline-role: "true"
+    desc: "Assume Pipeline Access Role"
+    annotations:
+      eks.amazonaws.com/role-arn: <<__role_arn.pipelines__>>
+
+
+
+
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: default-editor
+  namespace: luis-enrique
+  annotations:
+    eks.amazonaws.com/role-arn: <<__role_arn.pipelines__>>
+
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: pipelines-s3-secret
+  namespace: luis-enrique
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secret-store
+
+  target:
+    name: pipelines-s3-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: S3_ACCESSKEY
+    remoteRef:
+      key:  <<__external_secret_name.kubeflow.s3_accesskey__>>
+      property: S3_ACCESSKEY
+  - secretKey: S3_SECRETKEY
+    remoteRef:
+      key:  <<__external_secret_name.kubeflow.s3_secretkey__>>
+      property: S3_SECRETKEY
+

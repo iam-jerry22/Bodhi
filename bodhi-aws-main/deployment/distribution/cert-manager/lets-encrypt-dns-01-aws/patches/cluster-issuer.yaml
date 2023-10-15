@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: gateways-issuer
+  # namespace: istio-system
+spec:
+  selfSigned:
+    $patch: delete
+  acme:
+    email: vankala.krishnakumar@publicissapient.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: gateways-issuer-account-key
+    solvers:
+      - dns01:
+          route53:
+            hostedZoneID: Z0249231EU6S6XCNG8W4
+            region: us-east-2
+            #role: arn:aws:iam::412674115502:role/bodhi-ask-test-cert-manager

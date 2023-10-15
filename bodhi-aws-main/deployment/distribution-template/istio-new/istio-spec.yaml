@@ -1,0 +1,123 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: istio-system
+  name: istio
+spec:
+  profile: default
+  tag: 1.15.2
+  hub: docker.io/istio
+  meshConfig:
+    accessLogFile: /dev/stdout
+    accessLogEncoding: JSON
+    enableTracing: false # TODO
+    defaultConfig:
+      gatewayTopology:
+        numTrustedProxies: 2
+      tracing:
+        sampling: 100.0
+        max_path_tag_length: 256
+        zipkin:
+          address: jaeger-collector.istio-system.svc.cluster.local:9411
+    extensionProviders:
+    - name: oauth2-proxy
+      envoyExtAuthzHttp:
+        service: oauth2-proxy.auth.svc.cluster.local
+        port: "4180"
+        includeHeadersInCheck:
+        - accept
+        - authorization
+        - cookie
+        - from
+        - proxy-authorization
+        - user-agent
+        - x-forwarded-access-token
+        - x-forwarded-host
+        - x-forwarded-proto
+        - x-forwarded-email
+        - x-forwarded-user
+        - x-forwarded-for
+        headersToUpstreamOnAllow:
+        - authorization
+        - path
+        - x-auth-request-access-token
+        - x-auth-request-email
+        - x-auth-request-user
+        - x-auth-request-user-groups
+        headersToDownstreamOnDeny:
+        - content-type
+        - set-cookie
+  components:
+    ingressGateways:
+      - name: istio-ingressgateway
+        k8s:
+          service:
+            type: LoadBalancer
+            externalTrafficPolicy: Local
+          serviceAnnotations:
+            external-dns.alpha.kubernetes.io/hostname: <<__route53.hosted_zone_hostnames__>>
+      - enabled: true
+        name: cluster-local-gateway
+        # https://github.com/istio/istio/issues/19263#issuecomment-615833092
+        label:
+          app: cluster-local-gateway
+          istio: cluster-local-gateway
+        k8s:
+          env:
+          - name: ISTIO_META_ROUTER_MODE
+            value: sni-dnat
+          hpaSpec:
+            maxReplicas: 5
+            metrics:
+            - resource:
+                name: cpu
+                target:
+                  type: Utilization
+                  averageUtilization: 80
+              type: Resource
+            minReplicas: 1
+            scaleTargetRef:
+              apiVersion: apps/v1
+              kind: Deployment
+              name: cluster-local-gateway
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          service:
+            type: ClusterIP
+            ports:
+            - name: status-port
+              port: 15020
+              targetPort: 15020
+            - name: http2
+              port: 80
+              targetPort: 8080
+    egressGateways:
+    - enabled: false
+      name: istio-egressgateway
+  values:
+    global:
+      tracer:
+        zipkin:
+          address: jaeger-collector.istio-system.svc.cluster.local:9411
+      istiod:
+        enableAnalysis: true
+    sidecarInjectorWebhook:
+      neverInjectSelector:
+      - matchExpressions:
+        - {key: app, operator: In, values: []}
+    pilot:
+      autoscaleEnabled: true
+      autoscaleMax: 5
+      autoscaleMin: 1
+      configMap: true
+      cpu:
+        targetAverageUtilization: 80
+      env:
+        PILOT_ENABLE_STATUS: true
+        # https://istio.io/latest/docs/reference/config/config-status/
+        # PILOT_ENABLE_STATUS: true

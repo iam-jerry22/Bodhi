@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/instance: certificates
+  name: kubeflow-ingressgateway-certs
+  namespace: istio-system
+spec:
+  secretName: kubeflow-ingressgateway-certs
+  issuerRef:
+    name: gateways-issuer
+    kind: ClusterIssuer
+  commonName: console.bodhimlops.xyz
+  dnsNames:
+    - console.bodhimlops.xyz
+    - serving.bodhimlops.xyz
+    - "*.serving.bodhimlops.xyz"
+    - add.bodhimlops.xyz

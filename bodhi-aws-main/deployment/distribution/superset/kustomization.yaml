@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - superset-core.yaml
+  - superset-virtual-service.yaml
+  - allow-all-superset-authorization-policy.yaml
+  - allow-superset-external-policy.yaml
+  - deny-all-authorizationpolicy.yaml
+  - superset-gateway.yaml
+ 

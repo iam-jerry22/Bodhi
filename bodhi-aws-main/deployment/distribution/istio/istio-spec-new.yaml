@@ -1,0 +1,90 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: istio-system
+  name: istio
+spec:
+  profile: default
+  tag: 1.15.2
+  hub: docker.io/istio
+  meshConfig:
+    accessLogFile: /dev/stdout
+    accessLogEncoding: JSON
+    enableTracing: false # TODO
+    defaultConfig:
+      gatewayTopology:
+        numTrustedProxies: 2
+      tracing:
+        sampling: 100.0
+        max_path_tag_length: 256
+        zipkin:
+          address: jaeger-collector.istio-system.svc.cluster.local:9411
+    extensionProviders:
+    - name: oauth2-proxy
+      envoyExtAuthzHttp:
+        service: oauth2-proxy.auth.svc.cluster.local
+        port: "4180"
+        includeHeadersInCheck:
+        - accept
+        - authorization
+        - cookie
+        - from
+        - proxy-authorization
+        - user-agent
+        - x-forwarded-access-token
+        - x-forwarded-host
+        - x-forwarded-proto
+        - x-forwarded-email
+        - x-forwarded-user
+        - x-forwarded-for
+        headersToUpstreamOnAllow:
+        - authorization
+        - path
+        - x-auth-request-access-token
+        - x-auth-request-email
+        - x-auth-request-user
+        - x-auth-request-user-groups
+        headersToDownstreamOnDeny:
+        - content-type
+        - set-cookie
+  components:
+    ingressGateways:
+    - enabled: true
+      name: istio-ingressgateway
+      k8s:
+        service:
+          type: LoadBalancer
+          externalTrafficPolicy: Local
+        serviceAnnotations:
+            service.beta.kubernetes.io/aws-load-balancer-name: bodhi-ask-test-nlb
+            service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+            service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+            service.beta.kubernetes.io/aws-load-balancer-type: external
+            service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: instance
+            proxy.istio.io/config: '{"gatewayTopology" : { "numTrustedProxies": 2 } }'
+            #service.beta.kubernetes.io/aws-load-balancer-subnets: subnet-049f524faf012e63a,subnet-0aa385c846e6ce109,subnet-0f8281f48988ff013
+            external-dns.alpha.kubernetes.io/hostname: console.bodhimlops.xyz, serving.bodhimlops.xyz, argocd.bodhimlops.xyz, auth.bodhimlops.xyz, grafana.bodhimlops.xyz, kiali.bodhimlops.xyz, *.serving.bodhimlops.xyz, superset.bodhimlops.xyz
+    egressGateways:
+    - enabled: false
+      name: istio-egressgateway
+  values:
+    global:
+      tracer:
+        zipkin:
+          address: jaeger-collector.istio-system.svc.cluster.local:9411
+      istiod:
+        enableAnalysis: true
+    sidecarInjectorWebhook:
+      neverInjectSelector:
+      - matchExpressions:
+        - {key: app, operator: In, values: []}
+    pilot:
+      autoscaleEnabled: true
+      autoscaleMax: 5
+      autoscaleMin: 1
+      configMap: true
+      cpu:
+        targetAverageUtilization: 80
+      env:
+        # https://istio.io/latest/docs/reference/config/config-status/
+        # PILOT_ENABLE_STATUS: true

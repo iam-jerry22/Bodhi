@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ray
+  namespace: ray
+
+spec:
+  gateways:
+    - kubeflow/kubeflow-gateway
+  hosts:
+    - console.bodhimlops.xyz
+  http:
+    - headers:
+        request:
+          add:
+            x-forwarded-prefix: /ray
+      match:
+        - uri:
+            prefix: /ray/
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: bodhi-ray-cluster-ray-head.ray.svc.cluster.local
+            port:
+              number: 8265

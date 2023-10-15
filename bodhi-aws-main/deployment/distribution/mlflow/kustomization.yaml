@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - secret.yaml
+  - configmap.yaml
+  - database-creation-job.yaml
+  - deployment.yaml
+  - service.yaml
+  - mlflow-virtual-service.yaml
+  - allow-all-ns-mlflow-authorization-policy.yaml

@@ -1,0 +1,72 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/instance: istio-resources
+  name: eks-console-dashboard-full-access-clusterrole
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - '*'
+  - apiGroups:
+      - ''
+    resources:
+      - nodes
+      - namespaces
+      - pods
+      - events
+      - services
+      - pods/portforward
+      - pods/exec
+      - secrets
+    verbs:
+      - get
+      - list
+      - create
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - daemonsets
+      - statefulsets
+      - replicasets
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+      - list
+---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: eks-console-dashboard-full-access-binding
+# subjects:
+#   - kind: Group
+#     name: eks-console-dashboard-full-access-group
+#     apiGroup: rbac.authorization.k8s.io
+# roleRef:
+#   kind: ClusterRole
+#   name: eks-console-dashboard-full-access-clusterrole
+#   apiGroup: rbac.authorization.k8s.io
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: istio-resources
+  name: eks-console-dashboard-full-access-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: eks-console-dashboard-full-access-clusterrole
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: eks-console-dashboard-full-access-group

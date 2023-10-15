@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bodhi-forecast-ui
+  namespace: forecast
+  labels:
+    app: bodhi-forecast-ui
+spec:
+  selector:
+    matchLabels:
+      app: bodhi-forecast-ui
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: bodhi-forecast-ui
+    spec:
+      containers:
+        - name: bodhi-forecast-ui-app
+          image: 833228090428.dkr.ecr.eu-central-1.amazonaws.com/bodhi-forecast-ui:latest
+          imagePullPolicy: Always
+          #resources:
+          #   requests:
+          #     memory: "6096Mi"
+          #    cpu: "2000m"
+          #    limits:
+          #    memory: "8096Mi"
+          #      cpu: "6000m"
+          ports:
+            - containerPort: 8501
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: bodhi-forecast-ui
+  name: bodhi-forecast-ui
+  namespace: forecast
+spec:
+  ports:
+  - port: 8501
+    protocol: TCP
+    targetPort: 8501
+  selector:
+    app: bodhi-forecast-ui
+  type: ClusterIP

@@ -1,0 +1,33 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  labels:
+    app.kubernetes.io/instance: istio-resources
+  name: kubeflow-gateway
+  namespace: kubeflow
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - hosts:
+        - console.bodhimlops.xyz
+        - serving.bodhimlops.xyz
+        - "*.serving.bodhimlops.xyz"
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+      # Upgrade HTTP to HTTPS
+      tls:
+        httpsRedirect: true
+    - hosts:
+        - console.bodhimlops.xyz
+        - serving.bodhimlops.xyz
+        - "*.serving.bodhimlops.xyz"
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: kubeflow-ingressgateway-certs

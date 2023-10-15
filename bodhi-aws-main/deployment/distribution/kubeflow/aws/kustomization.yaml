@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubeflow
+resources:
+- github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic-multi-user-emissary?ref=1.8.5 # tag=1.6.0
+- s3-secret.yaml
+
+configMapGenerator:
+- name: pipeline-install-config
+  env: params.env
+  behavior: merge
+- name: workflow-controller-configmap
+  behavior: replace
+  files:
+  - config
+- name: ml-pipeline-ui-configmap
+  behavior: replace
+  files:
+  - viewer-pod-template.json
+# secretGenerator:
+# - name: mysql-secret
+#   env: secret.env
+#   behavior: merge
+# - name: mlpipeline-minio-artifact
+#   env: minio-artifact-secret-patch.env
+#   behavior: merge
+generatorOptions:
+  disableNameSuffixHash: true
+patchesStrategicMerge:
+- aws-configuration-patch.yaml
+# Identifier for application manager to apply ownerReference.
+# The ownerReference ensures the resources get garbage collected
+# when application is deleted.
+commonLabels:
+  application-crd-id: kubeflow-pipelines

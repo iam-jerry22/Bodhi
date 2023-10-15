@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+data:
+  repositories: |
+    - url: https://pscode.lioncloud.net/bodhi-platform/bodhi-aws.git
+      passwordSecret:
+        name: git-repo-secret
+        key: HTTPS_PASSWORD
+        property: HTTPS_PASSWORD
+      usernameSecret:
+        name: git-repo-secret
+        key: HTTPS_USERNAME
+        property: HTTPS_USERNAME

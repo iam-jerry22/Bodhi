@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/instance: certificates
+  name: monitoring-ingressgateway-certs
+  namespace: istio-system
+spec:
+  secretName: monitoring-ingressgateway-certs
+  issuerRef:
+    name: gateways-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - grafana.bodhimlops.xyz
+    - kiali.bodhimlops.xyz
+    - kubecost.bodhimlops.xyz
+    - add.bodhimlops.xyz

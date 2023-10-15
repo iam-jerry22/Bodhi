@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: superset
+  namespace: superset
+spec:
+  gateways:
+    - superset-gateway
+  hosts:
+    - <<__subdomain_superset__>>.<<__domain__>>
+  http:
+    - route:
+        - destination:
+            host: superset.superset.svc.cluster.local
+            port:
+              number: 80

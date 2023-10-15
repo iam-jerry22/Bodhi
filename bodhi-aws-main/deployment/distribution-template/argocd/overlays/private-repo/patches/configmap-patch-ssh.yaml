@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+data:
+  repositories: |
+    - name: git-repo
+      url: <<__git_repo.url__>>
+      type: git
+      insecure: true
+      insecureIgnoreHostKey: true
+      sshPrivateKeySecret:
+        name: git-repo-secret
+        key: SSH_PRIVATE_KEY

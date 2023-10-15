@@ -1,0 +1,9 @@
+Dockerfile
+requirements.txt
+inference-example.yaml
+inference-example1.yaml
+__pycache__
+utils
+app.py
+make_with_ui.sh
+testing

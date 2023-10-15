@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: psap
+  namespace: psap
+
+spec:
+  gateways:
+    - kubeflow/kubeflow-gateway
+  hosts:
+    - console.bodhimlops.xyz
+  http:
+    - headers:
+        request:
+          add:
+            x-forwarded-prefix: /psap
+      match:
+        - uri:
+            prefix: /psap/
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: psap.psap.svc.cluster.local
+            port:
+              number: 80

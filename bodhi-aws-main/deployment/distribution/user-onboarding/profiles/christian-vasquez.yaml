@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    owner: christian.vasquez@belcorp.biz
+  labels:
+    app.kubernetes.io/part-of: kubeflow-profile
+    istio-injection: enabled
+    katib-metricscollector-injection: enabled
+    pipelines.kubeflow.org/enabled: "true"
+    serving.kubeflow.org/inferenceservice: enabled
+  name: christian-vasquez
+
+---
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  finalizers:
+    - profile-finalizer
+  name: christian-vasquez
+spec:
+  owner:
+    kind: User
+    name: christian.vasquez@belcorp.biz
+  resourceQuotaSpec: {}
+
+
+---
+# user storage
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: christian-vasquez
+  namespace: christian-vasquez
+spec:
+  storageClassName: managed-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: bind-ml-pipeline-nb-christian-vasquez # set the name using namespace
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/christian-vasquez/sa/default-editor"] # set the namespace
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: add-header-notebook
+  namespace: christian-vasquez # set the namespace
+spec:
+  configPatches:
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: SIDECAR_OUTBOUND
+        routeConfiguration:
+          vhost:
+            name: ml-pipeline.kubeflow.svc.cluster.local:8888
+            route:
+              name: default
+      patch:
+        operation: MERGE
+        value:
+          request_headers_to_add:
+            - append: true
+              header:
+                key: kubeflow-userid
+                value: christian.vasquez@belcorp.biz # set email ID
+  workloadSelector:
+    labels:
+      notebook-name: notebook # change the notebook name
+
+---
+apiVersion: "kubeflow.org/v1alpha1"
+kind: PodDefault
+metadata:
+  name: add-pipeline-role
+  namespace: christian-vasquez
+spec:
+  selector:
+    matchLabels:
+      add-pipeline-role: "true"
+    desc: "Assume Pipeline Access Role"
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::412674115502:role/bodhi-ask-test-pipeline-access
+
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: pipelines-s3-secret
+  namespace: christian-vasquez
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secret-store
+
+  target:
+    name: pipelines-s3-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: S3_ACCESSKEY
+    remoteRef:
+      key:  bodhi-ask-test/bodhi-sc-88/prod
+      property: S3_ACCESSKEY
+  - secretKey: S3_SECRETKEY
+    remoteRef:
+      key:  bodhi-ask-test/bodhi-sc-88/prod
+      property: S3_SECRETKEY
+
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: default-editor
+  namespace: christian-vasquez
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::412674115502:role/bodhi-ask-test-pipeline-access

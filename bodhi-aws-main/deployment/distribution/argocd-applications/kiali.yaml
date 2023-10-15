@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kiali
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://kiali.org/helm-charts
+    targetRevision: 1.57.2
+    chart: kiali-operator
+    helm:
+      parameters:
+      - name: cr.create
+        value: "true"
+      - name: cr.namespace
+        value: istio-system
+      - name: cr.spec.api.namespaces.exclude[0]
+        value: kube-.*
+      - name: cr.spec.api.namespaces.exclude[1]
+        value: istio-operator
+      - name: cr.spec.api.namespaces.exclude[2]
+        value: kiali-operator
+      - name: cr.spec.deployment.ingress_enabled
+        value: "false"
+      - name: cr.spec.deployment.namespace
+        value: istio-system
+      - name: cr.spec.deployment.pod_annotations.sidecar\.istio\.io\/inject
+        value: \"false\"
+      - name: cr.spec.istio_namespace
+        value: istio-system
+      - name: cr.spec.external_services.tracing.enabled
+        value: "false"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kiali-operator
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nfs-subdir-external-provisioner
+  namespace: argocd
+spec:
+  destination:
+    namespace: kube-system
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    repoURL: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+    targetRevision: 4.0.2
+    chart: nfs-subdir-external-provisioner
+    helm:
+      parameters:
+        - name: nfs.server
+          value: fs-0dc5679822e732012.efs.us-east-2.amazonaws.com
+        - name: nfs.path
+          value: /
+        - name: serviceAccount.create
+          value: "true"
+        - name: rbac.create
+          value: "true"
+        - name: storageClass.create
+          value: "true"
+        - name: storageClass.provisionerName
+          value: "k8s-sigs.io/nfs-subdir-external-provisioner"
+        - name: storageClass.name
+          value: "nfs-client"
+        - name: storageClass.pathPattern
+          value: ${.PVC.namespace}-${.PVC.name}
+        - name: storageClass.onDelete
+          value: "retain"
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

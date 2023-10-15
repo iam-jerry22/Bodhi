@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: oidc-auth
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    #repoURL: https://pscode.lioncloud.net/bodhi-platform/bodhi-aws.git
+    repoURL: https://pscode.lioncloud.net/bodhi-platform/bodhi-aws.git
+    targetRevision: main
+    path: deployment/distribution/oidc-auth/overlays/keycloak
+    
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: auth
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

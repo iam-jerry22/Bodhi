@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aws-load-balancer-controller
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://aws.github.io/eks-charts
+    targetRevision: 1.4.3
+    chart: aws-load-balancer-controller
+    helm:
+      parameters:
+        - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
+          value: arn:aws:iam::412674115502:role/bodhi-ask-test-load-balancer-controller
+        - name: clusterName
+          value: bodhi-ask-test
+        - name: image.repository
+          value: amazon/aws-alb-ingress-controller
+        - name: vpcId
+          value: vpc-00cd8f970d10a9ac9
+        - name: region
+          value: us-east-2
+        - name: serviceAccount.create
+          value: "true"
+        - name: rbac.create
+          value: "true"
+        - name: resources.limits.cpu
+          value: 100m
+        - name: resources.limits.memory
+          value: 300Mi
+        - name: resources.requests.cpu
+          value: 100m
+        - name: resources.requests.memory
+          value: 300Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

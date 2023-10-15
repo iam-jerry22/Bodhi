@@ -1,0 +1,45 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # phase - 0
+  - argocd-applications/cert-manager-dns-01-aws.yaml
+  - argocd-applications/aws-load-balancer-controller.yaml
+  - argocd-applications/cluster-autoscaler.yaml
+  - argocd-applications/external-dns.yaml
+
+  # # # #   # # ### phase 1
+  # # # #   # # # istio
+  - argocd-applications/istio-operator.yaml
+  - argocd-applications/istio.yaml
+  - argocd-applications/istio-resources.yaml
+  - argocd-applications/kubeflow-namespace.yaml
+
+  # # # # # # # #   # ### Phase 2
+  - argocd-applications/certificates.yaml
+  - argocd-applications/monitoring-resources.yaml
+  - argocd-applications/kube-prometheus-stack.yaml
+  - argocd-applications/kiali.yaml
+  - argocd-applications/oidc-auth-on-cluster-keycloak.yaml
+
+  # # # # # # #   # ## phase 3 : validate the images
+  # # # # # # #   # # # kubeflow
+  - argocd-applications/knative.yaml
+  - argocd-applications/central-dashboard.yaml
+  - argocd-applications/profile-controller_access-management.yaml
+  - argocd-applications/kubeflow-roles.yaml
+  - argocd-applications/pipelines.yaml
+  # - argocd-applications/katib.yaml
+  - argocd-applications/kfserving.yaml
+  - argocd-applications/pod-defaults.yaml
+  - argocd-applications/jupyter-web-app.yaml
+  - argocd-applications/notebook-controller.yaml
+  - argocd-applications/tensorboard-controller.yaml
+  - argocd-applications/tensorboards-web-app.yaml
+  - argocd-applications/experimental-volumes-web-app.yaml
+  - argocd-applications/nfs-subdir-external-provisioner.yaml
+  - argocd-applications/user-onboarding.yaml
+  # - argocd-applications/mlflow.yaml
+  - argocd-applications/kubecost.yaml
+  - argocd-applications/kubecost-resources.yaml
+

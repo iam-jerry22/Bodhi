@@ -1,0 +1,9 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: katib-rds-config
+  namespace: kubeflow
+data:
+  DB_NAME: katib
+  RDS_HOST: bodhicoreprodrds.cpzbtxmnoxjs.us-east-2.rds.amazonaws.com:3306
+  RDS_PORT: "3306"

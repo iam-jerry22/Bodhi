@@ -1,0 +1,217 @@
+# user namespace
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: manoj-dasi
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    owner: manojkumar.dasi@publicissapient.com
+    iam.amazonaws.com/permitted: "arn:aws:iam::412674115502:role/.*"
+  labels:
+    app.kubernetes.io/part-of: kubeflow-profile
+    istio-injection: enabled
+    katib-metricscollector-injection: enabled
+    pipelines.kubeflow.org/enabled: "true"
+    serving.kserve.io/inferenceservice: enabled
+    #kafkasource.sources.knative.dev/kafka-source: enabled
+  name: manoj-dasi
+
+---
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  finalizers:
+    - profile-finalizer
+  name: manoj-dasi
+spec:
+  owner:
+    kind: User
+    name: manojkumar.dasi@publicissapient.com
+  resourceQuotaSpec: {}
+
+# user profile
+# apiVersion: kubeflow.org/v1
+# kind: Profile
+# metadata:
+#   name: manoj-dasi
+#   #namespace: manoj-dasi
+# spec:
+#   owner:
+#     kind: User
+#     name: manojkumar.dasi@publicissapient.com
+# resourceQuotaSpec:    # resource quota can be set optionally
+#   hard:
+#     cpu: "50"
+#     memory: 100Gi
+#     requests.nvidia.com/gpu: "2"
+#     persistentvolumeclaims: "20"
+#     requests.storage: "100Gi"
+
+---
+# user storage
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: manoj-dasi
+  namespace: manoj-dasi
+spec:
+  storageClassName: managed-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+# ---
+# apiVersion: security.istio.io/v1beta1
+# kind: AuthorizationPolicy
+# metadata:
+#   annotations:
+#     role: edit
+#     user: manojkumar.dasi@publicissapient.com
+#   generation: 1
+#   name: user-manoj-dasi-publicissapient-com-clusterrole-edit
+#   namespace: manoj-dasi
+# spec:
+#   rules:
+#     - when:
+#         - key: request.headers[kubeflow-userid]
+#           values:
+#             - manojkumar.dasi@publicissapient.com
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: bind-ml-pipeline-nb-manoj-dasi # set the name using namespace
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/manoj-dasi/sa/default-editor"] # set the namespace
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: add-header-notebook
+  namespace: manoj-dasi # set the namespace
+spec:
+  configPatches:
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: SIDECAR_OUTBOUND
+        routeConfiguration:
+          vhost:
+            name: ml-pipeline.kubeflow.svc.cluster.local:8888
+            route:
+              name: default
+      patch:
+        operation: MERGE
+        value:
+          request_headers_to_add:
+            - append: true
+              header:
+                key: kubeflow-userid
+                value: manojkumar.dasi@publicissapient.com # set email ID
+  workloadSelector:
+    labels:
+      add-pipeline-role: "true" # change the notebook name
+
+---
+apiVersion: "kubeflow.org/v1alpha1"
+kind: PodDefault
+metadata:
+  name: add-pipeline-role
+  namespace: manoj-dasi
+spec:
+  desc: "Assume Pipeline Access Role"
+  selector:
+    matchLabels:
+      add-pipeline-role: "true"
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::412674115502:role/bodhi-ask-test-pipeline-access
+  volumes:
+    - name: volume-kf-pipeline-token
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: token
+              expirationSeconds: 7200
+              audience: pipelines.kubeflow.org
+  volumeMounts:
+    - mountPath: /var/run/secrets/kubeflow/pipelines
+      name: volume-kf-pipeline-token
+      readOnly: true
+  env:
+    - name: KF_PIPELINES_SA_TOKEN_PATH
+      value: /var/run/secrets/kubeflow/pipelines/token
+
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: pipelines-s3-secret
+  namespace: manoj-dasi
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secret-store
+
+  target:
+    name: pipelines-s3-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: S3_ACCESSKEY
+    remoteRef:
+      key:  bodhi-ask-test/bodhi-sc-88/prod
+      property: S3_ACCESSKEY
+  - secretKey: S3_SECRETKEY
+    remoteRef:
+      key:  bodhi-ask-test/bodhi-sc-88/prod
+      property: S3_SECRETKEY
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: auth-policy-notebooks
+  namespace: manoj-dasi
+spec:
+  action: ALLOW
+  # Note: the notebook pods do not have a general label to identify them as such, therefore we don't have a selector here.
+  # Fortunately the endpoint is specific enough so that this should not cause any security issue.
+  rules:
+    - to:
+        - operation:
+            methods: ["GET"]
+            paths: ["*/api/status"] # wildcard for the name of the notebook server
+
+---
+apiVersion: v1
+stringData:
+  AWS_ACCESS_KEY_ID: minio
+  AWS_SECRET_ACCESS_KEY: minio123
+kind: Secret
+type: Opaque
+metadata:
+  annotations:
+    serving.kserve.io/s3-endpoint: minio-service.kubeflow.svc.cluster.local:9000
+    serving.kserve.io/s3-usehttps: "0"
+    serving.kserve.io/s3-region: us-east-2
+  name: kserve-sa
+  namespace: manoj-dasi
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kserve-sa
+  namespace: manoj-dasi
+secrets:
+- name: kserve-sa

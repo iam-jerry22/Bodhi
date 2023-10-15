@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: kubeflow-pipelines-profile-controller
+    app.kubernetes.io/component: ml-pipeline
+    app.kubernetes.io/instance: pipelines
+    app.kubernetes.io/name: kubeflow-pipelines
+    application-crd-id: kubeflow-pipelines
+  name: kubeflow-pipelines-profile-controller
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubeflow-pipelines-profile-controller
+      app.kubernetes.io/component: ml-pipeline
+      app.kubernetes.io/name: kubeflow-pipelines
+      application-crd-id: kubeflow-pipelines
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: 'false'
+      labels:
+        app: kubeflow-pipelines-profile-controller
+        app.kubernetes.io/component: ml-pipeline
+        app.kubernetes.io/name: kubeflow-pipelines
+        application-crd-id: kubeflow-pipelines
+    spec:
+      containers:
+        - name: profile-controller
+          command: [python, /hooks/sync_with_s3.py]
+          env:
+            - name: SECRET_NAME_S3_ACCESSKEY
+              value: <<__external_secret_name.kubeflow.s3_accesskey__>>
+            - name: SECRET_NAME_S3_SECRETKEY
+              value: <<__external_secret_name.kubeflow.s3_accesskey__>>
+            - name: EXTERNAL_SECRET_ROLE_ARN
+              value: <<__role_arn.external_secrets.kubeflow__>>
+            - name: EXTERNAL_SECRET_BACKEND_TYPE
+              value: <<__external_secrets.backend_type__>>
+          envFrom:
+            - configMapRef:
+                name: kubeflow-pipelines-profile-controller-env-5252m69c4c
+          image: 'python:3.7'
+          name: profile-controller
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - mountPath: /hooks
+              name: hooks
+      volumes:
+        - configMap:
+            name: kubeflow-pipelines-profile-controller-code-92g9b69ghc
+          name: hooks
+
+            # TODO : remove minio-related params
+            # - $patch: delete
+            #   name: MINIO_ACCESS_KEY
+            # - $patch: delete
+            #   name: MINIO_SECRET_KEY

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-pipeline-ui-viewer-template
+data:
+  viewer-tensorboard-template.json: |
+    {
+        "metadata": {
+            "annotations": {
+                "iam.amazonaws.com/role": "arn:aws:iam::412674115502:role/bodhi-ask-test-pipeline-access"
+            }
+        },
+        "spec": {
+            "containers": [
+                {
+                    "env": [
+                        {
+                            "name": "AWS_REGION",
+                            "value": "us-east-2"
+                        }
+                    ]
+                }
+            ]
+        }
+    }

@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: superset
+  namespace: argocd
+spec:
+  destination:
+    namespace: superset
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    repoURL: https://apache.github.io/superset
+    targetRevision: 0.3.12
+    chart: superset
+    helm:
+      parameters:
+        - name: service.port
+          value: "80"
+        - name: image.repository
+          value: 290759128727.dkr.ecr.us-east-1.amazonaws.com/bodhi-superset
+        - name: image.tag
+          value: 1.0.0
+        - name: image.pullPolicy
+          value: Always
+        - name: configOverrides.my_override
+          value: |
+            # Uncomment to setup an App icon
+            APP_ICON = "/static/assets/images/ps-logo.png"
+            APP_ICON_WIDTH = 80
+            APP_NAME = "Bodhi"
+        - name: bootstrapScript
+          value: |
+            #!/bin/bash
+            apt-get update -y &&\
+            apt-get install -y --no-install-recommends nano &&\
+            rm -rf /var/lib/apt/lists/*
+            pip install psycopg2==2.8.5 redis==3.2.1 clickhouse-driver==0.2.0 clickhouse-sqlalchemy==0.1.6 sqlalchemy-redshift
+            if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
+        - name: extraSecretEnv.MAPBOX_API_KEY
+          value: "pk.eyJ1IjoibWVhYmhpc2hla3VtYXIiLCJhIjoiY2txNWZqOHhjMG9jeTJ2cXpuemx1a3dsNCJ9.vsJPZQZpc8ml8WPFhJY1jA"
+        - name: init.loadExamples
+          value: "false"
+        - name: init.createAdmin
+          value: "true"
+        - name: init.adminUser.username
+          value: "admin"
+        - name: init.adminUser.firstname
+          value: "Superset"
+        - name: init.adminUser.lastname
+          value: "Admin"
+        - name: init.adminUser.email
+          value: "admin@superset.com"
+        - name: init.adminUser.password
+          value: 7NcV5S@JOH
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
